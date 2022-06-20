@@ -80,6 +80,7 @@ public:
         done = false;
         winner = -1;
     }
+
     bool put_disc(Point p) {
         if(!is_spot_valid(p)) {
             winner = get_next_player(cur_player);
