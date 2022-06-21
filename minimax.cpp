@@ -24,137 +24,35 @@
 #define FLEX1 15 //100
 #define flex1 16 //-150
 #define INF 0x7FFFFFFF
-
-#define P std::pair<int, int>
-
-
-struct Point {
-    int x, y;
-	Point() : Point(0, 0) {}
-	Point(float x, float y) : x(x), y(y) {}
-	bool operator==(const Point& rhs) const {
-		return x == rhs.x && y == rhs.y;
-	}
-	bool operator!=(const Point& rhs) const {
-		return !operator==(rhs);
-	}
-	Point operator+(const Point& rhs) const {
-		return Point(x + rhs.x, y + rhs.y);
-	}
-	Point operator-(const Point& rhs) const {
-		return Point(x - rhs.x, y - rhs.y);
-	}
-};
+void set_score();
 
 class Board {
 public:
-    enum SPOT_STATE {
-        EMPTY = 0,
-        BLACK = 1,
-        WHITE = 2
-    };
     static const int SIZE = 15;
     std::array<std::array<int, SIZE>, SIZE> board;
-	std::vector<Point> next_valid_spots;
-    int empty_count;
-    int cur_player;
-    bool done;
-    int winner;
-private:
-    int get_next_player(int player) const {
-        return 3 - player;
-    }
-    bool is_spot_on_board(Point p) const {
-        return 0 <= p.x && p.x < SIZE && 0 <= p.y && p.y < SIZE;
-    }
-    int get_disc(Point p) const {
-        return board[p.x][p.y];
-    }
-    void set_disc(Point p, int disc) {
-        board[p.x][p.y] = disc;
-    }
-    bool is_disc_at(Point p, int disc) const {
-        if (!is_spot_on_board(p))
-            return false;
-        if (get_disc(p) != disc)
-            return false;
-        return true;
-    }
-    bool is_spot_valid(Point center) const {
-        if (get_disc(center) != EMPTY)
-            return false;
-        return true;
-    }
+    int remain;
     
 public:
     Board(std::array<std::array<int, SIZE>, SIZE> cur_board, int player) {
+		remain = 0;
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 board[i][j] = cur_board[i][j];
-            }
+				if(!board[i][j])remain++;
         }
-        cur_player = player;
-		//next_valid_spots = get_valid_spots();
     }
+	}
     Board(Board const& cur_board){
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 board[i][j] = cur_board.board[i][j];
             }
         }
-        cur_player = cur_board.cur_player;
-        done = cur_board.done;
-        winner = cur_board.winner;
+        remain = cur_board.remain;
     }
-    std::vector<Point> get_valid_spots()const{
-        std::vector<Point> valid_spots;
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                Point p = Point(i, j);
-                if (board[i][j] != EMPTY)
-                    continue;
-                if (is_spot_valid(p))
-                    valid_spots.push_back(p);
-            }
-        }
-        return valid_spots;
-    }
-    bool put_disc(Point p) {
-		
-        if(!is_spot_valid(p)) {
-            winner = get_next_player(cur_player);
-            done = true;
-            return false;
-        }
-		
-        set_disc(p, cur_player);// maker sure it is the minimax player
-		/*
-        empty_count--;
-        // Check Win
-        if (checkwin(cur_player)) {
-            done = true;
-            winner = cur_player;
-        }
-        if (empty_count == 0) {
-            done = true;
-            winner = EMPTY;
-        }
-
-        // Give control to the other player.
-		*/
-    
-        next_valid_spots = get_valid_spots();
-        cur_player = get_next_player(cur_player);
-		
-        return true;
-    }
-    
-    //calculate the value of the board
-    //int get_state_value();
-    //int score_return(int board[15][15]);
-
-    
+	
 };
+
 enum SPOT_STATE {
     EMPTY = 0,
     BLACK = 1,
@@ -164,81 +62,85 @@ enum SPOT_STATE {
 int player;
 const int SIZE = 15;
 std::array<std::array<int, SIZE>, SIZE> root_board;
-std::vector<Point> next_valid_spots;
-int get_state_value(Board b);
+int get_state_value(Board b );
 
 void read_board(std::ifstream& fin) {
     fin >> player;
     for (int i = 0; i < SIZE; i++) {
         for (int j = 0; j < SIZE; j++) {
             fin >> root_board[i][j];
-            if(root_board[i][j] == EMPTY){
-                Point p = Point(i, j);
-                next_valid_spots.push_back(p);
-            }
         }
     }
 }
 
-
-
 int MinMax(Board cur, int depth, int next_player){
-    if(depth == 0 || cur.done) return get_state_value(cur);
-    
+    if(depth == 0 || cur.remain == 0) return get_state_value(cur);
+
+	Board next(cur);
+
     // if maximizing player
     if(next_player == player){
-        
         int value = -INF;
-		for(int i=0;i<(int)cur.next_valid_spots.size();i++){
-            Board next(cur);
-            next.put_disc(cur.next_valid_spots[i]);
-            value = std::max (value , MinMax(next , depth-1, 3-next_player));
+		for(int i = 0;i < SIZE;i++)for(int j = 0;j < SIZE ; j++){
+            if(next.board[i][j] == 0){
+				next.board[i][j] = next_player;
+				next.remain--;
+            	value = std::max ( value , MinMax(next , depth-1, 3-next_player));
+				next.board[i][j] = 0;
+				next.remain++;
+			}
         }
         return value;
     }
     else if(next_player == 3- player){
-
         int value = INF;
-		for(int i=0;i<(int)cur.next_valid_spots.size();i++){
-            Board next(cur);
-            next.put_disc(cur.next_valid_spots[i]);
-            value = std::min(value , MinMax(next , depth-1, 3-next_player));
+		for(int i = 0;i < SIZE;i++)for(int j = 0;j < SIZE ; j++){
+			if(next.board[i][j] == 0){
+            	next.board[i][j] = next_player;
+				next.remain--;
+            	value = std::min(value , MinMax(next , depth-1, 3-next_player));
+				next.board[i][j] = 0;
+				next.remain++;
+			}
         }
         return value;
     }
-    
 }
 
 // root board 
 void write_valid_spot(std::ofstream& fout) {
-    int n_valid_spots = (int)next_valid_spots.size();
+
     srand(time(NULL));
 
-    int index ;
-    int value = -INF;
+	set_score();
+    int x = -1 , y = -1;
+    int max_value = -INF;
 
+	Board next(root_board , player);
 
-    for(int i=0;i < n_valid_spots;i++){
-        Board next(root_board , player);
-        next.put_disc(next_valid_spots[i]);
-        int new_value = MinMax(next , 1 , 3-player);
-        if(new_value > value){
-            value = new_value , index = i;
-        } 
-    }
-
-    Point p = next_valid_spots[index];
-    fout << p.x << " " << p.y << std::endl;
-    fout.flush();
-    
-
+	for(int i = 0;i < SIZE;i++) for(int j = 0;j < SIZE ; j++){
+		if(next.board[i][j] == 0){
+			next.board[i][j] = player;
+			next.remain--;
+			int value = MinMax(next , 2 , 3-player);
+        	if(value > max_value){
+            	max_value = value , x = i , y = j;
+				//std::cout << x << y << "\n"; 
+        	}
+			next.board[i][j] = 0;
+			next.remain++;
+		}
+	}
+	std::cout << x << y << "\n"; 
+    fout << x << " " << y << std::endl;
+    fout.flush(); 
 }
 
 
 int main(int, char** argv) {
+	//std::cout << "fuck";
     std::ifstream fin(argv[1]);
     std::ofstream fout(argv[2]);
-
     read_board(fin);
     write_valid_spot(fout);
 
@@ -246,36 +148,8 @@ int main(int, char** argv) {
     fout.close();
     return 0;
 }
-
-
-int get_state_value(Board b){
-
-	std::array<std::array<int, SIZE>, SIZE> board = b.board;
-	/*
-	std::array<std::array<int, SIZE>, SIZE> board;
-
-	if(player == 2){
-		for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                if(temp_board[i][j] == 0){
-                   board[i][j] = 0;
-                }
-				if(temp_board[i][j] == 1){
-                   board[i][j] = 2;
-                }
-				if(temp_board[i][j] == 2){
-                   board[i][j] = 1;
-                }
-            }
-        }
-
-	}
-	else if(player == 1)
-	{
-		board = temp_board;
-	}
-	*/
-    int score[3][3][3][3][3][3];
+int score[3][3][3][3][3][3];
+void set_score(){
     //黑五连 boardI胜 (这里的黑不是指先手，而是指boardI)（棋型 1 //4000）
 	score[1][1][1][1][1][1]=WIN;
 	score[1][1][1][1][1][0]=WIN;
@@ -340,7 +214,7 @@ int get_state_value(Board b){
 	score[0][0][0][2][0][0]=flex1;
 	score[0][0][0][0][2][0]=flex1;
 
-
+	
 	int p1,p2,p3,p4,p5,p6,x,y,ix,iy;
 
 	for(p1=0;p1<3;p1++)
@@ -437,15 +311,38 @@ int get_state_value(Board b){
 			}
 		}
 	}
-    //各棋型权重
-	int weight[17]={0,4000,-4000,2000,-2000,1000,-1000,1000,-1000,400,-600,400,-600,100,-150,100,-150};
+	
+}
+int weight[17]={0,5000,-9000,3000,-5000,1000,-4000,1000,-1000,400,-600,400,-600,100,-150,100,-150};
+int get_state_value(Board b){
+	std::array<std::array<int, SIZE>, SIZE> temp_board = b.board;
+	
+	std::array<std::array<int, SIZE>, SIZE> board;
 
+	if(player == 2){
+		for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if(temp_board[i][j] == 0){
+                   board[i][j] = 0;
+                }
+				if(temp_board[i][j] == 1){
+                   board[i][j] = 2;
+                }
+				if(temp_board[i][j] == 2){
+                   board[i][j] = 1;
+                }
+            }
+        }
+
+	}
+	else if(player == 1)
+	{
+		board = temp_board;
+	}
+    //各棋型权重
 	int i,j,s;
 
 	int stat[4][17]={0};
-
-	int STAT[17];
-
 	//棋型统计
 	/*
 	0 1 2 ... 14
@@ -537,9 +434,8 @@ board[0][5]
 	for(i=1;i<17;i++)
 	{
 		s+=(stat[1][i]+stat[2][i]+stat[3][i]+stat[0][i])*weight[i]; //当前棋局的得分
-
-		STAT[i]=(stat[1][i]>0)+(stat[2][i]>0)+(stat[3][i]>0)+(stat[0][i]>0);  //存在这种棋型的方向的个数
+		//STAT[i]=(stat[1][i]>0)+(stat[2][i]>0)+(stat[3][i]>0)+(stat[0][i]>0);  //存在这种棋型的方向的个数
 	}
-
+	
 	return s;
 }

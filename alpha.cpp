@@ -7,6 +7,7 @@
 #include <sstream>
 #include <vector>
 // value for each case
+
 #define WIN 1 //4000
 #define LOSE 2 //-4000
 #define FLEX4 3 //2000
@@ -72,7 +73,7 @@ void read_board(std::ifstream& fin) {
     }
 }
 
-int MinMax(Board cur, int depth, int alpha , int beta, int next_player){
+int AlphaBeta(Board cur, int depth, int alpha , int beta, int next_player){
     if(depth == 0 || cur.remain == 0) return get_state_value(cur);
 	Board next(cur);
     // if maximizing player
@@ -82,7 +83,7 @@ int MinMax(Board cur, int depth, int alpha , int beta, int next_player){
             if(next.board[i][j] == 0){
 				next.board[i][j] = next_player;
 				next.remain--;
-            	value = std::max ( value , MinMax(next , depth-1, alpha ,beta , 3-next_player));
+            	value = std::max ( value , AlphaBeta(next , depth-1, alpha ,beta , 3-next_player));
             	alpha = std::max(value , alpha);
             	if(alpha >= beta) break;
 				next.board[i][j] = 0;
@@ -97,7 +98,7 @@ int MinMax(Board cur, int depth, int alpha , int beta, int next_player){
 			if(next.board[i][j] == 0){
             	next.board[i][j] = next_player;
 				next.remain--;
-            	value = std::min(value , MinMax(next , depth-1, alpha ,beta ,3-next_player));
+            	value = std::min(value , AlphaBeta(next , depth-1, alpha ,beta ,3-next_player));
             	beta = std::min(value,beta);
             	if(alpha >= beta) break;
 				next.board[i][j] = 0;
@@ -111,9 +112,10 @@ int MinMax(Board cur, int depth, int alpha , int beta, int next_player){
 
 // root board 
 void write_valid_spot(std::ofstream& fout) {
-	std::cout << "fuck";
+
     srand(time(NULL));
 	set_score();
+	
     int x = -1 , y = -1;
     int alpha = -INF;
     int beta = INF;
@@ -123,7 +125,7 @@ void write_valid_spot(std::ofstream& fout) {
 		if(next.board[i][j] == 0){
 			next.board[i][j] = player;
 			next.remain--;
-			int value = MinMax(next , 1 ,alpha , beta , 3-player);
+			int value = AlphaBeta(next , 1 ,alpha , beta , 3-player);
         	if(value > alpha){
             	alpha = value , x = i , y = j;
 				//std::cout << x << y << "\n"; 
@@ -149,16 +151,22 @@ int main(int, char** argv) {
     fout.close();
     return 0;
 }
+
+// state value and score rule
+
 int score[3][3][3][3][3][3];
+//int weight[17]={0,5000,-8000,3000,-5000,1000,-2000,1000,-1000,400,-600,400,-600,100,-150,100,-150};
+int weight[17]={0,4000,-8000,2500,-5000,1000,-2000,1000,-2000,400,-600,400,-600,100,-150,100,-150};
+
 void set_score(){
-    //黑五连 boardI胜 (这里的黑不是指先手，而是指boardI)（棋型 1 //4000）
+    //黑五連  （ 1 //4000）
 	score[1][1][1][1][1][1]=WIN;
 	score[1][1][1][1][1][0]=WIN;
 	score[0][1][1][1][1][1]=WIN;
 	score[1][1][1][1][1][2]=WIN;
 	score[2][1][1][1][1][1]=WIN;
 
-	//白五连 boardI负  （棋型 2 // -4000）
+	//白五連  （ 2 // -4000）
 	score[2][2][2][2][2][2]=LOSE;
 	score[2][2][2][2][2][0]=LOSE;
 	score[0][2][2][2][2][2]=LOSE;
@@ -166,27 +174,27 @@ void set_score(){
 	score[1][2][2][2][2][2]=LOSE;
 
 
-	//黑活四   （棋型 3 // 2000）
+	//黑活四   ( 3 // 2000）
 	score[0][1][1][1][1][0]=FLEX4;
 
-	//白活四	（棋型 4 // -2000）
+	//白活四   （ 4 // -2000）
 	score[0][2][2][2][2][0]=flex4;
 
 
-	//黑活三	（棋型 7 // 1000）
+	//黑活三	（ 7 // 1000）
 	score[0][1][1][1][0][0]=FLEX3;
 	score[0][1][1][0][1][0]=FLEX3;
 	score[0][1][0][1][1][0]=FLEX3;
 	score[0][0][1][1][1][0]=FLEX3;
 
-	//白活三	（棋型 8 // -1000）
+	//白活三	（ 8 // -1000）
 	score[0][2][2][2][0][0]=flex3;
 	score[0][2][2][0][2][0]=flex3;
 	score[0][2][0][2][2][0]=flex3;
 	score[0][0][2][2][2][0]=flex3;
 
 
-	//黑活二	（棋型 11 // 400）
+	//黑活二	（ 11 // 400）
 	score[0][1][1][0][0][0]=FLEX2;
 	score[0][1][0][1][0][0]=FLEX2;
 	score[0][1][0][0][1][0]=FLEX2;
@@ -194,7 +202,7 @@ void set_score(){
 	score[0][0][1][0][1][0]=FLEX2;
 	score[0][0][0][1][1][0]=FLEX2;
 
-	//白活二	（棋型 12 // -600）
+	//白活二	（ 12 // -600）
 	score[0][2][2][0][0][0]=flex2;
 	score[0][2][0][2][0][0]=flex2;
 	score[0][2][0][0][2][0]=flex2;
@@ -203,13 +211,13 @@ void set_score(){
 	score[0][0][0][2][2][0]=flex2;
 
 
-	//黑活一	（棋型 15 // 100）
+	//黑活一	（ 15 // 100）
 	score[0][1][0][0][0][0]=FLEX1;
 	score[0][0][1][0][0][0]=FLEX1;
 	score[0][0][0][1][0][0]=FLEX1;
 	score[0][0][0][0][1][0]=FLEX1;
 
-	//白活一	（棋型 16 // -150）
+	//白活一	（ 16 // -150）
 	score[0][2][0][0][0][0]=flex1;
 	score[0][0][2][0][0][0]=flex1;
 	score[0][0][0][2][0][0]=flex1;
@@ -257,7 +265,7 @@ void set_score(){
 							{
 								if(score[p1][p2][p3][p4][p5][p6]==0)
 								{
-									score[p1][p2][p3][p4][p5][p6]=BLOCK4;  //（棋型 5 // 1000）
+									score[p1][p2][p3][p4][p5][p6]=BLOCK4;  //（ 5 // 1000）
 								}
 							}
 
@@ -266,7 +274,7 @@ void set_score(){
 							{
 								if(score[p1][p2][p3][p4][p5][p6]==0)
 								{
-									score[p1][p2][p3][p4][p5][p6]=block4;  //（棋型 6 // -1000）
+									score[p1][p2][p3][p4][p5][p6]=block4;  //（ 6 // -1000）
 								}
 							}
 
@@ -275,7 +283,7 @@ void set_score(){
 							{
 								if(score[p1][p2][p3][p4][p5][p6]==0)
 								{
-									score[p1][p2][p3][p4][p5][p6]=BLOCK3;  //（棋型 9 // 400）
+									score[p1][p2][p3][p4][p5][p6]=BLOCK3;  //（ 9 // 400）
 								}
 							}
 
@@ -284,7 +292,7 @@ void set_score(){
 							{
 								if(score[p1][p2][p3][p4][p5][p6]==0)
 								{
-									score[p1][p2][p3][p4][p5][p6]=block3;  //（棋型 10 // -600）
+									score[p1][p2][p3][p4][p5][p6]=block3;  //（ 10 // -600）
 								}
 							}
 
@@ -293,7 +301,7 @@ void set_score(){
 							{
 								if(score[p1][p2][p3][p4][p5][p6]==0)
 								{
-									score[p1][p2][p3][p4][p5][p6]=BLOCK2; //（棋型 13 // 100）
+									score[p1][p2][p3][p4][p5][p6]=BLOCK2; //（ 13 // 100）
 								}
 							}
 
@@ -302,7 +310,7 @@ void set_score(){
 							{
 								if(score[p1][p2][p3][p4][p5][p6]==0)
 								{
-									score[p1][p2][p3][p4][p5][p6]=block2;  //（棋型 14 // -150）
+									score[p1][p2][p3][p4][p5][p6]=block2;  //（ 14 // -150）
 								}
 							}
 
@@ -314,7 +322,8 @@ void set_score(){
 	}
 	
 }
-int weight[17]={0,5000,-9000,3000,-5000,1000,-3000,1000,-1000,400,-600,400,-600,100,-150,100,-150};
+
+
 int get_state_value(Board b){
 	std::array<std::array<int, SIZE>, SIZE> temp_board = b.board;
 	
@@ -344,33 +353,12 @@ int get_state_value(Board b){
 	int i,j,s;
 
 	int stat[4][17]={0};
-	//棋型统计
-	/*
-	0 1 2 ... 14
-	1
-	2
-	.
-	.
-	.
-	14
-	*/
+
 	for(i=0;i<15;i++)
 	{
 		for(j=0;j<10;j++)
 		{
 			s=score[board[i][j]][board[i][j+1]][board[i][j+2]][board[i][j+3]][board[i][j+4]][board[i][j+5]];
-			/*
-			横向五子的情况
-			i=0,j=0 board[0][0] board[0][1] board[0][2] board[0][3] board[0][4] board[0][5]
-				j=1 board[0][1,2,3,4,5,6]
-				...
-				j=9 board[0][9,10,11,12,13,14,15]
-			...
-			i=14,j=0 board[14][0,1,2,3,4,5]
-				j=1 board[14][1,2,3,4,5,6]
-				...
-				j=9 board[14][9,10,11,12,13,14,15]
-			*/
 			stat[1][s]++;
 		}
 	}
@@ -380,16 +368,6 @@ int get_state_value(Board b){
 		for(i=0;i<10;i++)
 		{
 			s=score[board[i][j]][board[i+1][j]][board[i+2][j]][board[i+3][j]][board[i+4][j]][board[i+5][j]];
-			/*
-			竖向五子的情况
-			j=0,i=0 board[0][0]
-					board[1][0]
-					board[2][0]
-					board[3][0]
-					board[4][0]
-					board[5][0]
-
-			*/
 			stat[2][s]++;
 		}
 	}
@@ -399,14 +377,6 @@ int get_state_value(Board b){
 		for(j=0;j<10;j++)
 		{
 			s=score[board[i][j]][board[i+1][j+1]][board[i+2][j+2]][board[i+3][j+3]][board[i+4][j+4]][board[i+5][j+5]];
-			/*
-			斜向五子的情况1
-			i=0,j=0 board[0][0]
-						board[1][1]
-							board[2][2]
-							...
-								board[5][5]
-			*/
 			stat[3][s]++;
 		}
 	}
@@ -416,26 +386,15 @@ int get_state_value(Board b){
 		for(j=0;j<10;j++)
 		{
 			s=score[board[i][j]][board[i-1][j+1]][board[i-2][j+2]][board[i-3][j+3]][board[i-4][j+4]][board[i-5][j+5]];
-			/*
-			斜向五子的情况2
-			i=5,j=0 board[5][0]
-				board[4][1]
-			board[3][2]
-		board[2][3]
-	board[1][4]
-board[0][5]
-			*/
 			stat[0][s]++;
 		}
 	}
 
 	s=0;
 
-	//初步评分累加
 	for(i=1;i<17;i++)
 	{
-		s+=(stat[1][i]+stat[2][i]+stat[3][i]+stat[0][i])*weight[i]; //当前棋局的得分
-		//STAT[i]=(stat[1][i]>0)+(stat[2][i]>0)+(stat[3][i]>0)+(stat[0][i]>0);  //存在这种棋型的方向的个数
+		s+=(stat[1][i]+stat[2][i]+stat[3][i]+stat[0][i])*weight[i]; //total score
 	}
 	
 	return s;
